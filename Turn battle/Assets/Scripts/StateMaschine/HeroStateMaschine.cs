@@ -89,18 +89,27 @@ public class HeroStateMaschine : MonoBehaviour
                     //reset gui
                     BSM.AttackPanel.SetActive(false);
                     BSM.EnemySelectPanel.SetActive(false);
+
                     //remove item from performlist
-                    for (int i = 0; i < BSM.performList.Count; i++)
-                    {
-                        if(BSM.performList[i].AttacksGameObject == this.gameObject)
-                        {
-                            BSM.performList.Remove(BSM.performList[i]);
-                        }
-                    }
+					if(BSM.HerosInBattle.Count > 0)
+					{
+						for (int i = 0; i < BSM.performList.Count; i++)
+						{
+							if (BSM.performList[i].AttacksGameObject == this.gameObject)
+							{
+								BSM.performList.Remove(BSM.performList[i]);
+							}
+
+							if (BSM.performList[i].AttackerTarget == this.gameObject)
+							{
+								BSM.performList[i].AttackerTarget = BSM.HerosInBattle[Random.Range(0, BSM.HerosInBattle.Count)];
+							}
+						}
+					}
                     //change color / play animation
                     this.gameObject.GetComponent<MeshRenderer>().material.color = new Color32(105, 105, 105, 255);
-                    //reset heroinput
-                    BSM.HeroInput = BattleStateManager.HeroGuI.ACTIVATE;
+					//reset heroinput
+					BSM.battleStates = BattleStateManager.PerformAction.CHECKALIVE;
 
                     alive = false;  
                 }
@@ -149,15 +158,23 @@ public class HeroStateMaschine : MonoBehaviour
 
         //リストreset
         BSM.performList.RemoveAt(0);
+
         //待機
-        BSM.battleStates = BattleStateManager.PerformAction.WAIT;
+		if(BSM.battleStates != BattleStateManager.PerformAction.WIN && BSM.battleStates != BattleStateManager.PerformAction.LOSE)
+		{
+			BSM.battleStates = BattleStateManager.PerformAction.WAIT;
 
-        //end コールテン
-        actionStarted = false;
+			//敵ステイタスreset
+			cur_cooldown = 0f;
+			currnetState = TurnState.PROCESSING;
+		}
+		else
+		{
+			currnetState = TurnState.WAITING;
+		}
 
-        //敵ステイタスreset
-        cur_cooldown = 0f;
-        currnetState = TurnState.PROCESSING;
+		//end コールテン
+		actionStarted = false;
     }
     private bool MoveToWardsEnemy(Vector3 target)
     {

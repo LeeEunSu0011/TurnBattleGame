@@ -11,6 +11,9 @@ public class BattleStateManager : MonoBehaviour
         WAIT,
         TAKEACTION,
         PERFORMACTION,
+		CHECKALIVE,
+		WIN,
+		LOSE
     }
 
     public PerformAction battleStates;
@@ -42,13 +45,16 @@ public class BattleStateManager : MonoBehaviour
     public GameObject EnemySelectPanel;
     public GameObject MagicPanel;
 
-    //magic attack
+    // attack of heros
     public Transform actionSpacer;
     public Transform magicSpacer;
     public GameObject actionButton;
     public GameObject magicButton;
     private List<GameObject> atkBtns = new List<GameObject>();
-    
+
+	//enemy button
+	private List<GameObject> enemyBtns = new List<GameObject>();
+
     void Start()
     {
         //バトル待機
@@ -112,7 +118,40 @@ public class BattleStateManager : MonoBehaviour
 				battleStates = PerformAction.PERFORMACTION;
 				break;
             case (PerformAction.PERFORMACTION):
-                break;
+				//Idle
+				break;
+			case (PerformAction.CHECKALIVE):
+				if(HerosInBattle.Count < 1)
+				{
+					battleStates = PerformAction.LOSE;
+					//lose game
+				}
+				else if(EnemyInBattle.Count < 1)
+				{
+					battleStates = PerformAction.WIN;
+					//win game
+				}
+				else
+				{
+					//call funcion
+					clearAttackPanel();
+					HeroInput = HeroGuI.ACTIVATE;
+				}
+				break;
+			case (PerformAction.LOSE):
+				{
+					Debug.Log("You Lost the Battle");
+				}
+				break;
+			case (PerformAction.WIN):
+				{
+					Debug.Log("You Win the Battle");
+					for (int i = 0; i < HerosInBattle.Count; i++)
+					{
+						HerosInBattle[i].GetComponent<HeroStateMaschine>().currnetState = HeroStateMaschine.TurnState.WAITING;
+					}
+				}
+				break;
         }
 
         switch (HeroInput)
@@ -145,8 +184,16 @@ public class BattleStateManager : MonoBehaviour
 		performList.Add(input);
 	}
 
-	void EnemyButtons()
+	public void EnemyButtons()
 	{
+		//cleanup
+		foreach(GameObject enemyBtn in enemyBtns)
+		{
+			Destroy(enemyBtn);
+		}
+		enemyBtns.Clear();
+
+		//create buttons
 		foreach(GameObject enemy in EnemyInBattle)
 		{
 			GameObject newButton = Instantiate(enemyButton) as GameObject;
@@ -160,6 +207,7 @@ public class BattleStateManager : MonoBehaviour
 			button.EnemyPrefab = enemy;
 
 			newButton.transform.SetParent(Spacer, false);
+			enemyBtns.Add(newButton);
 		}
 	}
 
@@ -207,16 +255,8 @@ public class BattleStateManager : MonoBehaviour
         Debug.Log("Done");
         //値を返す
         performList.Add(HeroChoise);
-        //HeroGUI off
-        EnemySelectPanel.SetActive(false);
-
-        //clean the attackPanel
-        foreach(GameObject atkBtn in atkBtns)
-        {
-            Destroy(atkBtn);
-        }
-        atkBtns.Clear();
-
+		//Panelclear
+		clearAttackPanel();
         //selector off
         HerosToManage[0].transform.Find("Selector").gameObject.SetActive(false);
         //ListRemove
@@ -224,6 +264,20 @@ public class BattleStateManager : MonoBehaviour
         //実行
         HeroInput = HeroGuI.ACTIVATE;
     }
+
+	void clearAttackPanel()
+	{
+		EnemySelectPanel.SetActive(false);
+		AttackPanel.SetActive(false);
+		MagicPanel.SetActive(false);
+
+		//clean the attackPanel
+		foreach (GameObject atkBtn in atkBtns)
+		{
+			Destroy(atkBtn);
+		}
+		atkBtns.Clear();
+	}
 
     //create ActionButtonsPanel
     void CreateAttackButton()

@@ -28,6 +28,10 @@ public class EnemyStateMaschine : MonoBehaviour
 	private bool actionStarted = false;
 	public GameObject HeroToAttack;
 	private float animSpeed = 5f;
+
+	//alive
+	private bool alive = true;
+
 	void Start()
     {
         currnetState = TurnState.PROCESSING;
@@ -49,13 +53,50 @@ public class EnemyStateMaschine : MonoBehaviour
 				break;
             case (TurnState.WATTING):
 				//待機
-
                 break;
             case (TurnState.ACTION):
 				StartCoroutine(TimeForAction());
                 break;
             case (TurnState.DEAD):
-                break;
+				if (!alive)
+				{
+					return;
+				}
+				else
+				{
+					//change tag of enemy
+					this.gameObject.tag = "DeadEnemy";
+					//not attackable bt heros
+					BSM.EnemyInBattle.Remove(this.gameObject);
+					//disable the selector
+					Selector.SetActive(false);
+
+					if(BSM.EnemyInBattle.Count > 0)
+					{
+						//remove all input heroattacks
+						for (int i = 0; i < BSM.performList.Count; i++)
+						{
+							if (BSM.performList[i].AttacksGameObject == this.gameObject)
+							{
+								BSM.performList.Remove(BSM.performList[i]);
+							}
+
+							if (BSM.performList[i].AttackerTarget == this.gameObject)
+							{
+								BSM.performList[i].AttackerTarget = BSM.EnemyInBattle[Random.Range(0, BSM.EnemyInBattle.Count)];
+							}
+						}
+					}
+					//chage the color to gray / play dead animation
+					this.gameObject.GetComponent<MeshRenderer>().material.color = new Color32(105, 105, 105, 255);
+					//set alive false
+					alive = false;
+					//reset enemy buttons
+					BSM.EnemyButtons();
+					//check alive
+					BSM.battleStates = BattleStateManager.PerformAction.CHECKALIVE;
+				}
+				break;
         }
     }
 
